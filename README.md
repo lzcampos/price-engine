@@ -33,9 +33,11 @@ npm start
 
 ## Deploying on Vercel
 
-This app is a **Fastify** backend. Vercel detects [`src/server.ts`](src/server.ts) and runs it as a function. Common reasons it “does not work”:
+This app is a **Fastify** backend. Vercel auto-detects certain filenames (including `src/app.ts`) as the framework entry and requires a **default export** there. This repo uses **`src/server.ts`** as the only entry and keeps route wiring in [`src/fastify-app.ts`](src/fastify-app.ts) so the name `app.ts` is avoided on purpose.
 
-1. **404 on `/`** — there was no root route before; `GET /` now returns a small JSON index. Use `GET /health` or the API routes below.
+Common issues and how this project handles them:
+
+1. **404 on `/`** — `GET /` returns a small JSON index. Use `GET /health` or the API routes below.
 2. **Read-only filesystem** — you cannot create `data/price-engine.db` in the project directory on Vercel. When `VERCEL=1`, the app defaults to **`/tmp/price-engine.db`** (writable) and runs **migrations + seed** automatically on first use if the database is empty.
 3. **Ephemeral `/tmp`** — each serverless instance may get a cold empty DB; demo data is re-seeded when the DB has no rows. For real traffic, point **`DATABASE_URL`** at [Turso](https://turso.tech/) or another hosted LibSQL/Postgres and run migrations there.
 
