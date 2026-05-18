@@ -43,7 +43,7 @@ Common issues and how this project handles them:
 2. **Read-only filesystem** — on Vercel the app uses **`/tmp/price-engine.db`**. Migrations + seed run once per warm isolate (`.ready` marker skips repeat work).
 3. **Ephemeral `/tmp`** — new isolates pay a one-time cold-start cost. For production, use **Turso** (`DATABASE_URL` + `LIBSQL_AUTH_TOKEN`).
 
-Performance tweaks for serverless: singleton DB client, cached app bootstrap, disabled request logging on Vercel, batched seed inserts, two-query `listCreators` (no N+1), `vercel.json` bundles `drizzle/**` for migrations.
+Performance tweaks for serverless: singleton DB client, cached app bootstrap, disabled request logging on Vercel, batched seed inserts, two-query `listCreators` (no N+1). Build copies `drizzle/` into `dist/drizzle` for migrations on Vercel (do not use `functions` in `vercel.json` for `src/app.ts` — that pattern is only for `api/*` routes).
 
 Production docs: `https://your-app.vercel.app/docs`
 

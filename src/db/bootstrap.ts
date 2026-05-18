@@ -1,11 +1,28 @@
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { migrate } from "drizzle-orm/libsql/migrator";
 import { SEED_CREATORS } from "../seed-data.js";
 import { config } from "../config.js";
 import { isRemoteLibsqlUrl } from "./client.js";
 import type { Db } from "./client.js";
 import { creatorPlatformMetrics, creators } from "./schema.js";
+
+function resolveMigrationsFolder(): string | null {
+  const here = path.dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    path.join(process.cwd(), "drizzle"),
+    path.join(process.cwd(), "dist", "drizzle"),
+    path.join(here, "..", "..", "drizzle"),
+    path.join(here, "..", "..", "..", "drizzle"),
+  ];
+  for (const dir of candidates) {
+    if (fs.existsSync(path.join(dir, "meta", "_journal.json"))) {
+      return dir;
+    }
+  }
+  return null;
+}
 
 function readyMarkerPath(): string {
   return `${config.databaseUrl}.ready`;
@@ -60,8 +77,8 @@ export async function ensureDatabaseReady(db: Db): Promise<void> {
     return;
   }
 
-  const migrationsFolder = path.join(process.cwd(), "drizzle");
-  if (fs.existsSync(migrationsFolder)) {
+  const migrationsFolder = resolveMigrationsFolder();
+  if (migrationsFolder) {
     await migrate(db, { migrationsFolder });
   }
 
