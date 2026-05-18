@@ -26,10 +26,11 @@
     "node": ">=20"
   },
   "dependencies": {
+    "@cloudflare/workers-types": "^4.20241218.0",
     "@fastify/cors": "^10.0.2",
     "@fastify/swagger": "^9.4.2",
     "@fastify/swagger-ui": "^5.2.1",
-    "@cloudflare/workers-types": "^4.20241218.0",
+    "@hono/swagger-ui": "^0.5.3",
     "@libsql/client": "^0.14.0",
     "drizzle-orm": "^0.38.3",
     "fastify": "^5.2.1",

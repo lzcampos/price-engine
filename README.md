@@ -61,7 +61,7 @@ npm run dev:worker
 
 Demo seed data is inserted automatically on the first request if the database is empty.
 
-**Note:** Swagger UI (`/docs`) is only on the **Node/Fastify** local/Docker stack. The Worker exposes the same JSON API routes.
+**Swagger UI:** `/docs` on both Worker and local Fastify. OpenAPI JSON at `/openapi.json`.
 
 ---
 

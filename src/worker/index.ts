@@ -1,6 +1,8 @@
 import type { D1Database } from "@cloudflare/workers-types";
+import { swaggerUI } from "@hono/swagger-ui";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { buildOpenApiDocument } from "../openapi/document.js";
 import { createD1Db } from "../db/d1.js";
 import { seedD1IfEmpty } from "../db/seed-d1.js";
 import { pricingEngine } from "../domain/pricing-engine/pricing-engine.js";
@@ -38,12 +40,21 @@ async function dbFromEnv(env: Env): Promise<Db> {
   return db;
 }
 
+app.get("/openapi.json", (c) => {
+  const origin = new URL(c.req.url).origin;
+  return c.json(buildOpenApiDocument(origin));
+});
+
+app.get("/docs", swaggerUI({ url: "/openapi.json" }));
+app.get("/docs/*", swaggerUI({ url: "/openapi.json" }));
+
 app.get("/", (c) =>
   c.json({
     service: "price-engine",
     runtime: "cloudflare-worker",
     ok: true,
-    docs: "Same routes as local API — use /health, /creators, /creators/:id/pricing, /comparison?a=&b=",
+    docs: "/docs",
+    openapi: "/openapi.json",
   })
 );
 
