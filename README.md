@@ -1,4 +1,4 @@
-# Price Engine — take-home (Conecta+)
+# Price Engine
 
 **Node.js + TypeScript** API to register creator profiles, estimate recommended rates by deliverable type (EUR, min–max range + justification), and compare two profiles with a **growth potential** note against a same-niche benchmark.
 
