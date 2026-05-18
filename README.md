@@ -33,7 +33,7 @@ npm start
 
 ## Deploying on Vercel
 
-This app is a **Fastify** backend. Vercel auto-detects certain filenames (including `src/app.ts`) as the framework entry and requires a **default export** there. This repo uses **`src/server.ts`** as the only entry and keeps route wiring in [`src/fastify-app.ts`](src/fastify-app.ts) so the name `app.ts` is avoided on purpose.
+This app is a **Fastify** backend. Vercel auto-detects [`src/app.ts`](src/app.ts) (and may probe [`src/server.ts`](src/server.ts)); the build **must** see a direct `import … from "fastify"` in whichever file it treats as the entry. [`src/server.ts`](src/server.ts) is a thin shim that re-exports the app default. Route wiring lives in [`src/fastify-app.ts`](src/fastify-app.ts). Local `npm run dev` / `npm start` use `src/app.ts`; **`app.listen()`** only runs when `VERCEL` is not set.
 
 Common issues and how this project handles them:
 

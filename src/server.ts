@@ -1,20 +1,9 @@
-import { config } from "./config.js";
-import { buildApp } from "./fastify-app.js";
-import { createDb } from "./db/client.js";
-import { ensureDatabaseReady } from "./db/bootstrap.js";
+/**
+ * Alternate auto-detected entry name. Vercel's scanner requires a direct `fastify`
+ * import on probed entry files — keep this shim so `server.ts` is valid if chosen.
+ */
+import Fastify from "fastify";
 
-const db = createDb();
-await ensureDatabaseReady(db);
-const app = await buildApp(db);
+void Fastify;
 
-if (process.env.VERCEL !== "1") {
-  try {
-    await app.listen({ port: config.port, host: "0.0.0.0" });
-    app.log.info(`Listening on http://localhost:${config.port}`);
-  } catch (e) {
-    app.log.error(e);
-    process.exit(1);
-  }
-}
-
-export default app;
+export { default } from "./app.js";
