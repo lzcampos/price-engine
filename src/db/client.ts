@@ -11,13 +11,11 @@ function ensureDirForFile(filePath: string) {
   fs.mkdirSync(dir, { recursive: true });
 }
 
-/** Absolute `file:` URL for local SQLite via LibSQL. */
 function sqliteFileUrl(filePath: string): string {
-  const resolved = path.resolve(filePath);
-  return pathToFileURL(resolved).href;
+  return pathToFileURL(path.resolve(filePath)).href;
 }
 
-function isRemoteLibsqlUrl(url: string): boolean {
+export function isRemoteLibsqlUrl(url: string): boolean {
   return (
     url.startsWith("libsql:") ||
     url.startsWith("http://") ||
@@ -25,7 +23,12 @@ function isRemoteLibsqlUrl(url: string): boolean {
   );
 }
 
-export function createDb() {
+let dbSingleton: ReturnType<typeof drizzle> | null = null;
+
+/** Reuse one DB client per serverless isolate (avoids reconnecting every import). */
+export function getDb() {
+  if (dbSingleton) return dbSingleton;
+
   const raw = config.databaseUrl;
   let url: string;
   if (isRemoteLibsqlUrl(raw)) {
@@ -34,11 +37,13 @@ export function createDb() {
     ensureDirForFile(raw);
     url = sqliteFileUrl(raw);
   }
+
   const client = createClient({
     url,
     authToken: process.env.LIBSQL_AUTH_TOKEN?.trim() || undefined,
   });
-  return drizzle(client, { schema });
+  dbSingleton = drizzle(client, { schema });
+  return dbSingleton;
 }
 
-export type Db = ReturnType<typeof createDb>;
+export type Db = ReturnType<typeof getDb>;

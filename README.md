@@ -16,6 +16,8 @@ npm run seed       # fictional data + brief-inspired profiles
 npm run dev        # API at http://localhost:3000
 ```
 
+**Swagger UI:** [http://localhost:3000/docs](http://localhost:3000/docs) — try all endpoints from the browser.
+
 Compiled local run:
 
 ```bash
@@ -38,10 +40,12 @@ This app is a **Fastify** backend. Vercel auto-detects [`src/app.ts`](src/app.ts
 Common issues and how this project handles them:
 
 1. **404 on `/`** — `GET /` returns a small JSON index. Use `GET /health` or the API routes below.
-2. **Read-only filesystem** — you cannot create `data/price-engine.db` in the project directory on Vercel. When `VERCEL=1`, the app defaults to **`/tmp/price-engine.db`** (writable) and runs **migrations + seed** automatically on first use if the database is empty.
-3. **Ephemeral `/tmp`** — each serverless instance may get a cold empty DB; demo data is re-seeded when the DB has no rows. For real traffic, point **`DATABASE_URL`** at [Turso](https://turso.tech/) or another hosted LibSQL/Postgres and run migrations there.
+2. **Read-only filesystem** — on Vercel the app uses **`/tmp/price-engine.db`**. Migrations + seed run once per warm isolate (`.ready` marker skips repeat work).
+3. **Ephemeral `/tmp`** — new isolates pay a one-time cold-start cost. For production, use **Turso** (`DATABASE_URL` + `LIBSQL_AUTH_TOKEN`).
 
-Redeploy after pulling these changes. Optional `vercel.json` is not required for the [documented Fastify flow](https://vercel.com/docs/frameworks/backend/fastify).
+Performance tweaks for serverless: singleton DB client, cached app bootstrap, disabled request logging on Vercel, batched seed inserts, two-query `listCreators` (no N+1), `vercel.json` bundles `drizzle/**` for migrations.
+
+Production docs: `https://your-app.vercel.app/docs`
 
 ## Endpoints
 
@@ -81,6 +85,10 @@ curl -s "http://localhost:3000/comparison?a=seed-lucia-food-junior&b=seed-paola-
 Includes `byDeliverable` (deltas), `summary` (main signal differences), and `potentialInsight`: automatic benchmark with the same **`nicheKey`**, higher experience or audience, excluding the two creators being compared (see seed: Carmen as a senior food reference).
 
 ### Health — `GET /health`
+
+### Interactive API docs — `GET /docs`
+
+Open `/docs` for Swagger UI (OpenAPI 3.1). JSON spec at `/docs/json`.
 
 ## How the pricing model works
 

@@ -5,25 +5,56 @@ import { isAppError } from "./shared/errors.js";
 import { registerComparisonRoutes } from "./modules/comparison/comparison.routes.js";
 import { registerCreatorsRoutes } from "./modules/creators/creators.routes.js";
 import { registerPricingRoutes } from "./modules/pricing/pricing.routes.js";
+import { registerSwagger } from "./plugins/swagger.js";
+
+const isVercel = process.env.VERCEL === "1";
 
 export async function buildApp(db: Db) {
-  const app = Fastify({ logger: true });
+  const app = Fastify({
+    logger: isVercel ? false : { level: "info" },
+  });
 
   await app.register(cors, { origin: true });
+  await registerSwagger(app);
 
-  app.get("/", async () => ({
-    service: "price-engine",
-    ok: true,
-    docs: "See README for API routes.",
-    try: [
-      "GET /health",
-      "GET /creators/:id",
-      "GET /creators/:id/pricing",
-      "GET /comparison?a=:id&b=:id",
-    ],
-  }));
+  app.get(
+    "/",
+    {
+      schema: {
+        tags: ["health"],
+        summary: "API index",
+        response: {
+          200: {
+            type: "object",
+            properties: {
+              service: { type: "string" },
+              ok: { type: "boolean" },
+              docs: { type: "string" },
+              swagger: { type: "string" },
+            },
+          },
+        },
+      },
+    },
+    async () => ({
+      service: "price-engine",
+      ok: true,
+      docs: "OpenAPI UI at /docs",
+      swagger: "/docs",
+    })
+  );
 
-  app.get("/health", async () => ({ ok: true }));
+  app.get(
+    "/health",
+    {
+      schema: {
+        tags: ["health"],
+        summary: "Health check",
+        response: { 200: { type: "object", properties: { ok: { type: "boolean" } } } },
+      },
+    },
+    async () => ({ ok: true })
+  );
 
   registerCreatorsRoutes(app, db);
   registerPricingRoutes(app, db);
@@ -36,9 +67,10 @@ export async function buildApp(db: Db) {
         message: err.message,
       });
     }
-    app.log.error(err);
+    if (!isVercel) app.log.error(err);
     return reply.status(500).send({ error: "INTERNAL", message: "Unexpected error" });
   });
 
+  await app.ready();
   return app;
 }
