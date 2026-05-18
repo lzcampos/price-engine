@@ -1,3 +1,4 @@
+import type { D1Database } from "@cloudflare/workers-types";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createD1Db } from "../db/d1.js";
