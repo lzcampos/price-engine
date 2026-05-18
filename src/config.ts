@@ -19,7 +19,7 @@ function defaultDatabaseUrl(): string {
 }
 
 export const config = {
-  port: envNumber("PORT", 3000),
+  port: envNumber("PORT", 4000),
   /** SQLite file path, or remote LibSQL URL (e.g. Turso). */
   databaseUrl: defaultDatabaseUrl(),
 };

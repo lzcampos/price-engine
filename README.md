@@ -13,10 +13,10 @@
 npm install
 npm run db:migrate   # applies SQL in drizzle/
 npm run seed       # fictional data + brief-inspired profiles
-npm run dev        # API at http://localhost:3000
+npm run dev        # API at http://localhost:4000
 ```
 
-**Swagger UI:** [http://localhost:3000/docs](http://localhost:3000/docs) — try all endpoints from the browser.
+**Swagger UI:** [http://localhost:4000/docs](http://localhost:4000/docs) — try all endpoints from the browser.
 
 Compiled local run:
 
@@ -29,30 +29,53 @@ npm start
 
 | Variable       | Default                          |
 |----------------|----------------------------------|
-| `PORT`         | `3000`                           |
-| `DATABASE_URL` | Local: `./data/price-engine.db`. On **Vercel** (`VERCEL=1`), defaults to `/tmp/price-engine.db` unless set. Remote **Turso / LibSQL**: `libsql://…`. |
+| `PORT`         | `4000`                           |
+| `DATABASE_URL` | `./data/price-engine.db` (local) or `/data/price-engine.db` (Docker) |
 | `LIBSQL_AUTH_TOKEN` | Optional. Auth token for remote LibSQL (Turso). |
+| `CLOUDFLARE_TUNNEL_TOKEN` | Required for Docker tunnel (see below). |
 
-## Deploying on Vercel
+## Docker + Cloudflare Tunnel (recommended)
 
-This app is a **Fastify** backend. Vercel auto-detects [`src/app.ts`](src/app.ts) (and may probe [`src/server.ts`](src/server.ts)); the build **must** see a direct `import … from "fastify"` in whichever file it treats as the entry. [`src/server.ts`](src/server.ts) is a thin shim that re-exports the app default. Route wiring lives in [`src/fastify-app.ts`](src/fastify-app.ts). Local `npm run dev` / `npm start` use `src/app.ts`; **`app.listen()`** only runs when `VERCEL` is not set.
+Runs the API on **port 4000** and exposes it through your Cloudflare tunnel.
 
-Common issues and how this project handles them:
+1. Copy env file and add your tunnel token:
 
-1. **404 on `/`** — `GET /` returns a small JSON index. Use `GET /health` or the API routes below.
-2. **Read-only filesystem** — on Vercel the app uses **`/tmp/price-engine.db`**. Migrations + seed run once per warm isolate (`.ready` marker skips repeat work).
-3. **Ephemeral `/tmp`** — new isolates pay a one-time cold-start cost. For production, use **Turso** (`DATABASE_URL` + `LIBSQL_AUTH_TOKEN`).
+```bash
+cp .env.example .env
+# Edit .env — set CLOUDFLARE_TUNNEL_TOKEN=... (from Cloudflare Zero Trust → Tunnels)
+```
 
-Performance tweaks for serverless: singleton DB client, cached app bootstrap, disabled request logging on Vercel, batched seed inserts, two-query `listCreators` (no N+1). Build copies `drizzle/` into `dist/drizzle` for migrations on Vercel (do not use `functions` in `vercel.json` for `src/app.ts` — that pattern is only for `api/*` routes).
+2. In the [Cloudflare dashboard](https://one.dash.cloudflare.com/), edit your tunnel’s **Public Hostname** service URL to:
 
-Production docs: `https://your-app.vercel.app/docs`
+```text
+http://127.0.0.1:4000
+```
+
+(`cloudflared` uses `network_mode: service:api`, so `127.0.0.1:4000` inside the tunnel container is the API.)
+
+3. Start:
+
+```bash
+npm run docker:up
+npm run docker:logs   # optional
+```
+
+4. Local checks:
+
+- API: http://localhost:4000/health  
+- Swagger: http://localhost:4000/docs  
+- Public URL: your Cloudflare hostname (from the tunnel config)
+
+Stop: `npm run docker:down`
+
+**Security:** never commit `.env` or paste tunnel tokens in chat/repos. Rotate the token in Cloudflare if it was exposed.
 
 ## Endpoints
 
 ### 1. Register creator — `POST /creators`
 
 ```bash
-curl -s -X POST http://localhost:3000/creators \
+curl -s -X POST http://localhost:4000/creators \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Example",
@@ -70,8 +93,8 @@ curl -s -X POST http://localhost:3000/creators \
 Optional query flags (boolean): `includeExtendedUsageRights`, `exclusivityCampaign`, `rushDelivery` (`1`/`true`/`0`/`false`).
 
 ```bash
-curl -s "http://localhost:3000/creators/seed-paola-food/pricing"
-curl -s "http://localhost:3000/creators/seed-paola-food/pricing?exclusivityCampaign=1&includeExtendedUsageRights=1"
+curl -s "http://localhost:4000/creators/seed-paola-food/pricing"
+curl -s "http://localhost:4000/creators/seed-paola-food/pricing?exclusivityCampaign=1&includeExtendedUsageRights=1"
 ```
 
 Response: `deliverables` with keys `storyPack`, `feedPost`, `reelShort`, `ugcBrandOnly`, `longVideo`; each includes `min`, `max`, `recommended`, `justification`, `baseRateEur`, and `factors` (multipliers used).
@@ -79,7 +102,7 @@ Response: `deliverables` with keys `storyPack`, `feedPost`, `reelShort`, `ugcBra
 ### 3. Compare two profiles — `GET /comparison?a=:id&b=:id`
 
 ```bash
-curl -s "http://localhost:3000/comparison?a=seed-lucia-food-junior&b=seed-paola-food"
+curl -s "http://localhost:4000/comparison?a=seed-lucia-food-junior&b=seed-paola-food"
 ```
 
 Includes `byDeliverable` (deltas), `summary` (main signal differences), and `potentialInsight`: automatic benchmark with the same **`nicheKey`**, higher experience or audience, excluding the two creators being compared (see seed: Carmen as a senior food reference).
