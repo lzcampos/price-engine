@@ -11,6 +11,18 @@ export async function buildApp(db: Db) {
 
   await app.register(cors, { origin: true });
 
+  app.get("/", async () => ({
+    service: "price-engine",
+    ok: true,
+    docs: "See README for API routes.",
+    try: [
+      "GET /health",
+      "GET /creators/:id",
+      "GET /creators/:id/pricing",
+      "GET /comparison?a=:id&b=:id",
+    ],
+  }));
+
   app.get("/health", async () => ({ ok: true }));
 
   registerCreatorsRoutes(app, db);

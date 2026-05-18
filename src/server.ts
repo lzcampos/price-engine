@@ -1,8 +1,10 @@
 import { config } from "./config.js";
-import { createDb } from "./db/client.js";
 import { buildApp } from "./app.js";
+import { createDb } from "./db/client.js";
+import { ensureDatabaseReady } from "./db/bootstrap.js";
 
 const db = createDb();
+await ensureDatabaseReady(db);
 const app = await buildApp(db);
 
 try {
