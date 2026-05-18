@@ -1,0 +1,16 @@
+name = "price-engine"
+main = "src/worker/index.ts"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Free HTTPS URL: https://price-engine.<your-subdomain>.workers.dev
+# No custom domain required.
+
+[[d1_databases]]
+binding = "DB"
+database_name = "price-engine-db"
+# After: wrangler d1 create price-engine-db — paste database_id here:
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+
+[observability]
+enabled = true

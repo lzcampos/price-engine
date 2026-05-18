@@ -32,43 +32,61 @@ npm start
 | `PORT`         | `4000`                           |
 | `DATABASE_URL` | `./data/price-engine.db` (local) or `/data/price-engine.db` (Docker) |
 | `LIBSQL_AUTH_TOKEN` | Optional. Auth token for remote LibSQL (Turso). |
-| `CLOUDFLARE_TUNNEL_TOKEN` | Required for Docker tunnel (see below). |
+## Cloudflare Worker (recommended — no domain required)
 
-## Docker + Cloudflare Tunnel (recommended)
-
-Runs the API on **port 4000** and exposes it through your Cloudflare tunnel.
-
-1. Copy env file and add your tunnel token:
+Deploys to a free **`https://price-engine.<your-account>.workers.dev`** URL. Uses **D1** (SQLite) — no tunnel or custom domain setup.
 
 ```bash
-cp .env.example .env
-# Edit .env — set CLOUDFLARE_TUNNEL_TOKEN=... (from Cloudflare Zero Trust → Tunnels)
+npm install
+npx wrangler login
+npm run d1:create
+# Copy database_id from output into wrangler.toml → database_id = "..."
+npm run d1:migrate:remote
+npm run deploy:worker
 ```
 
-2. In the [Cloudflare dashboard](https://one.dash.cloudflare.com/), edit your tunnel’s **Public Hostname** service URL to:
+Test (replace with your workers.dev URL from deploy output):
 
-```text
-http://127.0.0.1:4000
+```bash
+curl https://price-engine.YOUR_SUBDOMAIN.workers.dev/health
+curl "https://price-engine.YOUR_SUBDOMAIN.workers.dev/comparison?a=seed-lucia-food-junior&b=seed-paola-food"
 ```
 
-(`cloudflared` uses `network_mode: service:api`, so `127.0.0.1:4000` inside the tunnel container is the API.)
+Local Worker + D1 (port 4000):
 
-3. Start:
+```bash
+npm run d1:migrate:local
+npm run dev:worker
+```
+
+Demo seed data is inserted automatically on the first request if the database is empty.
+
+**Note:** Swagger UI (`/docs`) is only on the **Node/Fastify** local/Docker stack. The Worker exposes the same JSON API routes.
+
+---
+
+## Docker + quick tunnel (no domain)
+
+Named tunnels with a **token** require a **hostname on a domain you own** in Cloudflare. If you only want a public URL without that, use the default **quick tunnel** (random `*.trycloudflare.com` URL):
 
 ```bash
 npm run docker:up
-npm run docker:logs   # optional
+npm run docker:logs
 ```
 
-4. Local checks:
+Look for a line like: `https://something-random.trycloudflare.com` → that is your public API.
 
-- API: http://localhost:4000/health  
+- Local: http://localhost:4000/health  
 - Swagger: http://localhost:4000/docs  
-- Public URL: your Cloudflare hostname (from the tunnel config)
 
-Stop: `npm run docker:down`
+**Named tunnel** (your own domain, needs dashboard config + token):
 
-**Security:** never commit `.env` or paste tunnel tokens in chat/repos. Rotate the token in Cloudflare if it was exposed.
+```bash
+# .env with CLOUDFLARE_TUNNEL_TOKEN=...
+docker compose --profile named-tunnel up --build -d
+```
+
+Dashboard service URL for named tunnel: `http://127.0.0.1:4000`
 
 ## Endpoints
 

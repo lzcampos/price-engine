@@ -1,3 +1,6 @@
+# Quick tunnel: public https://….trycloudflare.com URL — no Cloudflare domain setup.
+# For a named tunnel + your own hostname, use: docker compose --profile named-tunnel up
+
 services:
   api:
     build: .
@@ -11,6 +14,17 @@ services:
     restart: unless-stopped
 
   cloudflared:
+    image: cloudflare/cloudflared:latest
+    network_mode: "service:api"
+    depends_on:
+      api:
+        condition: service_started
+    command: tunnel --no-autoupdate --url http://127.0.0.1:4000
+    restart: unless-stopped
+
+  # Optional: only if you configured a named tunnel + domain in Cloudflare dashboard
+  cloudflared-named:
+    profiles: ["named-tunnel"]
     image: cloudflare/cloudflared:latest
     network_mode: "service:api"
     depends_on:
